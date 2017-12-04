@@ -1,0 +1,178 @@
+package org.usfirst.frc.team694.robot.subsystems;
+
+import org.usfirst.frc.team694.robot.RobotMap;
+
+import com.ctre.CANTalon;
+import com.ctre.CANTalon.FeedbackDevice;
+import com.kauailabs.navx.frc.AHRS;
+
+import edu.wpi.first.wpilibj.RobotDrive;
+import edu.wpi.first.wpilibj.SPI;
+import edu.wpi.first.wpilibj.Solenoid;
+import edu.wpi.first.wpilibj.command.Subsystem;
+
+/**
+ *
+ */
+
+public class Drivetrain extends Subsystem {
+
+    /**
+     * Talon for left top motor. Has encoder on it.
+     */
+    private CANTalon leftTopMotor;
+    /**
+     * Talon for right top motor. Has encoder on it.
+     */
+    private CANTalon rightTopMotor;
+
+    private CANTalon leftBottomMotor;
+    private CANTalon rightBottomMotor;
+
+    private Solenoid gearShift;
+
+    private RobotDrive robotDrive;
+
+    private AHRS gyro;
+
+    // Put methods for controlling this subsystem
+    // here. Call these from Commands.
+
+    public Drivetrain() {
+        leftTopMotor = new CANTalon(RobotMap.LEFT_TOP_MOTOR_PORT);
+        rightTopMotor = new CANTalon(RobotMap.RIGHT_TOP_MOTOR_PORT);
+        leftBottomMotor = new CANTalon(RobotMap.LEFT_BOTTOM_MOTOR_PORT);
+        rightBottomMotor = new CANTalon(RobotMap.RIGHT_BOTTOM_MOTOR_PORT);
+
+        leftTopMotor.enableBrakeMode(true);
+        rightTopMotor.enableBrakeMode(true);
+        leftBottomMotor.enableBrakeMode(true);
+        rightBottomMotor.enableBrakeMode(true);
+
+        leftTopMotor.setInverted(true);
+        rightTopMotor.setInverted(true);
+        leftBottomMotor.setInverted(true);
+        rightBottomMotor.setInverted(true);
+
+        gearShift = new Solenoid(RobotMap.GEAR_SHIFT_SOLENOID_PORT);
+
+        leftTopMotor.setFeedbackDevice(FeedbackDevice.QuadEncoder);
+        rightTopMotor.setFeedbackDevice(FeedbackDevice.QuadEncoder);
+
+
+        robotDrive = new RobotDrive(leftBottomMotor, leftTopMotor, rightBottomMotor, rightTopMotor);
+
+        //Encoders are located on the top motors on either of the motor complexes located on the left/right hemispheres.
+        leftTopMotor.configEncoderCodesPerRev(RobotMap.DRIVETRAIN_ENCODERS_PULSES_PER_REVOLUTION);
+        rightTopMotor.configEncoderCodesPerRev(RobotMap.DRIVETRAIN_ENCODERS_PULSES_PER_REVOLUTION);
+
+        gyro = new AHRS(SPI.Port.kMXP);
+        resetGyro();
+    }
+
+    @Override
+    public void initDefaultCommand() {
+        // Set the default command for a subsystem here.
+        //setDefaultCommand(new DrivetrainPiotrDriveCommand());
+    }
+
+    public void tankDrive(double left, double right) {
+        robotDrive.tankDrive(left, right);
+    }
+
+    public void stop() {
+        tankDrive(0, 0);
+    }
+
+    // TODO: UNITS MUST BE COMMENTED. (Degrees; positive is clockwise)
+    public double gyroAngle() {
+        return gyro.getAngle();
+    }
+
+    public void resetGyro() {
+        gyro.reset();
+    }
+
+    public void resetEncoders() {
+        leftTopMotor.reset();
+        rightTopMotor.reset();
+        leftTopMotor.enable();
+        rightTopMotor.enable();
+        leftTopMotor.setPosition(0);
+        rightTopMotor.setPosition(0);
+    }
+
+    // Start motion profiling and fill in with velocity and time durations
+    /*public void enableMotionProfileMode(double[] velocities, double[] timeDurations) {
+    	leftTopMotor.clearMotionProfileTrajectories();
+    	rightTopMotor.clearMotionProfileTrajectories();
+    	CANTalon.TrajectoryPoint point = new CANTalon.TrajectoryPoint();
+    	for(int i = 0; i < velocities.length; i++) {
+    		poi
+    	}
+    }
+
+    public void disableMotionProfileMode() {
+    	
+    }*/
+
+    public double encoderDistance() {
+        return Math.max(leftEncoderDistance(), rightEncoderDistance());
+    }
+
+    public double leftEncoderDistance() {
+        return (leftTopMotor.getPosition() * RobotMap.DRIVETRAIN_ENCODERS_INCHES_PER_REVOLUTION)
+                / RobotMap.DRIVETRAIN_ENCODERS_FACTOR;
+    }
+
+    public double rightEncoderDistance() {
+        // Distance is scaled by -1.0 because right encoder was reporting
+        // incorrect (negated) values
+        return -1.0 * (rightTopMotor.getPosition() * RobotMap.DRIVETRAIN_ENCODERS_INCHES_PER_REVOLUTION)
+                / RobotMap.DRIVETRAIN_ENCODERS_FACTOR;
+    }
+
+    public double leftEncoderSpeed() {
+        return (leftTopMotor.getSpeed() * RobotMap.DRIVETRAIN_ENCODERS_INCHES_PER_REVOLUTION)
+        / RobotMap.DRIVETRAIN_ENCODERS_FACTOR;
+    }
+
+    public double rightEncoderSpeed() {
+        return -1.0 * (rightTopMotor.getSpeed() * RobotMap.DRIVETRAIN_ENCODERS_INCHES_PER_REVOLUTION)
+        / RobotMap.DRIVETRAIN_ENCODERS_FACTOR;
+    }
+
+    public double avgAbsEncoderSpeed() {
+        return (Math.abs(leftEncoderSpeed()) + Math.abs(rightEncoderSpeed())) / 2;
+    }
+
+    //Sets the solenoid to a shifted state manually
+    public void manualGearShift(boolean shift) {
+        gearShift.set(shift);
+    }
+
+    public void highGearShift() {
+        gearShift.set(false);
+    }
+
+    public void lowGearShift() {
+        gearShift.set(true);
+    }
+
+    public double getLeftTopMotorCurrent() {
+        return leftTopMotor.getOutputCurrent();
+    }
+
+    public double getRightBottomMotorCurrent() {
+        return rightBottomMotor.getOutputCurrent();
+    }
+
+    public double getLeftBottomMotorCurrent() {
+        return leftBottomMotor.getOutputCurrent();
+    }
+
+    public double getRightTopMotorCurrent() {
+        return rightTopMotor.getOutputCurrent();
+    }
+
+}
